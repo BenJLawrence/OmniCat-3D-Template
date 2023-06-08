@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine.Events;
 using System;
 
-namespace OmnicatLabs.Managers
+namespace OmnicatLabs.Timers
 {
     [System.Serializable]
     public class Flag   //Serializable class to hold data of a flag

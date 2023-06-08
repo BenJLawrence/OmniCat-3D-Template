@@ -1,5 +1,5 @@
 using UnityEngine;
-using OmnicatLabs.Managers;
+using OmnicatLabs.Timers;
 using TMPro;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
