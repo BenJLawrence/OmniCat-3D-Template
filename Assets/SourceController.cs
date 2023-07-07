@@ -27,7 +27,7 @@ namespace OmnicatLabs.Audio
 
         private void Update()
         {
-            if (!assignedSource.isPlaying && )
+            //if (!assignedSource.isPlaying && )
 
             if (!assignedSource.isPlaying && !completed)
             {
