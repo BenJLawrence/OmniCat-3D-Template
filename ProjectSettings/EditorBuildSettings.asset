@@ -5,9 +5,12 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
+  - enabled: 0
+    path: 
+    guid: 00000000000000000000000000000000
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/OmnicatLabs/Demos/FPSController.unity
+    guid: e99ca263aec7f964782024037294a49c
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 5e363e50514eb544b84908f96d8ccdf7,
       type: 2}
