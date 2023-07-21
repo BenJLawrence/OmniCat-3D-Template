@@ -1,54 +1,46 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class State : OmniEnum<State, CharacterState>
+public class CharacterStates : State<CharacterState>
 {
-    public readonly static OmniEnum<State, CharacterState> Moving = StateSingleton.MoveStateInstance;
-
-    public readonly static OmniEnum<State, CharacterState> Idle = StateSingleton.IdleStateInstance;
+    public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState();
+    public static readonly State<CharacterState> Idle = new CharacterStateLibrary.IdleState();
+    public static readonly State<CharacterState> Falling = new CharacterStateLibrary.FallingState();
+    public static readonly State<CharacterState> Sprinting = new CharacterStateLibrary.SprintState();
+    public static readonly State<CharacterState> Jumping = new CharacterStateLibrary.JumpState();
+    public static readonly State<CharacterState> OnSlope = new CharacterStateLibrary.SlopeState();
 }
 
-[RequireComponent(typeof(StateSingleton))]
-public class CharacterController : MonoBehaviour
+public class CharacterController : StatefulObject<CharacterState>
 {
-    private OmniEnum<State, CharacterState> state;
+    private Vector3 movementDir;
 
-    void Start()
+    private void Start()
     {
-        state = State.Idle;
-        State.AddField(new OmniEnum<State, CharacterState>("Crouch", StateSingleton.CrouchStateInstance));
+        state = CharacterStates.Idle;
+        ChangeState(CharacterStates.Moving, this);
     }
 
-    void Update()
+    #region Input Callbacks
+    public void OnMove(InputAction.CallbackContext context)
     {
-        HandleState();
+        movementDir = context.ReadValue<Vector3>();
+        ChangeState(CharacterStates.Moving, this);
     }
 
-    public void ChangeState(State newState)
+    public void OnSprint(InputAction.CallbackContext context)
     {
-        //call the exit on the current state
-        state.data.OnStateExit();
 
-        //change the state
-        state = newState;
-
-        //call enter on the new state in IStates
-        newState.data.OnStateEnter();
     }
 
-    private void HandleState()
+    public void OnJump(InputAction.CallbackContext context)
     {
-        //Debug.Log(state.stateData);
-        state.data.OnStateUpdate();
-
-        if (state == State.Idle)
+        if (context.performed)
         {
-            
-        }
-        else if (state == State.Moving)
-        {
-            
+
         }
     }
+    #endregion
 }

@@ -4,21 +4,46 @@ using UnityEngine;
 using System.Reflection;
 using System.Linq;
 using System;
+using System.Text;
+using System.Reflection.Emit;
 
-public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<EnumType, DataType>>
+public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<EnumType, DataType>>, IDebuggable
 {
+    public BindingFlags testFlags = BindingFlags.Public | BindingFlags.Default | BindingFlags.IgnoreCase | BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
     public int id { get; private set; }
     public string name { get; private set; }
 
-    public DataType data { get; private set; }
+    public DataType data { get; set; }
 
     protected static List<OmniEnum<EnumType, DataType>> fields = new List<OmniEnum<EnumType, DataType>>();
 
     protected OmniEnum()
     {
         fields.Add(this);
-        id = fields.IndexOf(this) + 1;
-        name = typeof(EnumType).GetFields()[id - 1].Name;
+        id = fields.Count - 1; //change all id creates to this
+
+        //If the enum is a State we need to do something special
+        if (typeof(EnumType).GetGenericTypeDefinition() == typeof(State<>))
+        {
+            //Because the fields of a State will be determined by whatever it is inherited by, we have to check for which class that is.
+            //Because each generic definition of a State is treated as a different type, there should only be one class that inherits from the State hence index 0
+            //Debug.Log(Assembly.GetAssembly(typeof(EnumType)).GetTypes()
+            //    .Where(type => type.IsClass && !type.IsAbstract && type.IsSubclassOf(typeof(EnumType)))
+            //    .ToList()[0].GetFields()[id].Name);
+            name = Assembly.GetAssembly(typeof(EnumType)).GetTypes()
+                .Where(type => type.IsClass && !type.IsAbstract && type.IsSubclassOf(typeof(EnumType))).ToList()[0].GetFields()[id].Name;
+        }
+        else
+        {
+            name = typeof(EnumType).GetType().GetProperties()[id].Name;
+        }
+    }
+
+    public OmniEnum(string _name)
+    {
+        fields.Add(this);
+        id = fields.Count - 1;
+        name = _name;
     }
 
     public OmniEnum(string _name, DataType _data)
@@ -30,7 +55,7 @@ public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<En
     public static void AddField(OmniEnum<EnumType, DataType> field)
     {
         fields.Add(field);
-        field.id = fields.IndexOf(field) + 1;
+        field.id = fields.Count - 1;
         //Debug.Log(field.id);
         //Debug.Log(fields);
     }
@@ -70,7 +95,7 @@ public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<En
         fields.Sort(comparison);
         foreach (var field in fields)
         {
-            field.id = fields.IndexOf(field) + 1;
+            field.id = fields.IndexOf(field) + 1; //look at this later
         }
     }
 
@@ -86,6 +111,7 @@ public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<En
 
         return null;
     }
+
     public override bool Equals(object obj)
     {
         if (obj is not OmniEnum<EnumType, DataType> otherValue)
@@ -134,11 +160,25 @@ public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<En
         data = default;
     }
 
+    public object OmniDebug()
+    {
+        return OmniEnumDebugger();
+    }
+
     //Defines the indexer so we can treat the enum as an array
     public OmniEnum<EnumType, DataType> this[int i]
     {
         get { return fields[i]; }
         set { fields[i] = value; }
+    }
+
+    protected StringBuilder OmniEnumDebugger()
+    {
+        StringBuilder debugString = new StringBuilder();
+        debugString.Append($"Name: {name} ");
+        debugString.Append($"ID: {id}, ");
+        debugString.Append($"Data Type: {data.GetType()} ");
+        return debugString;
     }
 
     #region Operator Overloads

@@ -6,35 +6,13 @@ using System;
 using System.Reflection;
 using UnityEngine.Internal;
 
+public interface IDebuggable
+{
+    public object OmniDebug();
+}
+
 public class Debug
 {
-    private static StringBuilder OmniEnumBuilder(object message)
-    {
-        //need to get around dynamic eventually
-        dynamic fields = message.GetType().GetField("fields", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-
-        StringBuilder debugString = new StringBuilder();
-        foreach (var field in fields)
-        {
-            if (field.name == message.GetType().GetProperty("name").GetValue(message))
-            {
-                debugString.Append($"(");
-                debugString.Append($"[CURRENT] {field.name}: ");
-                debugString.Append($"{field.id}, ");
-                debugString.Append($"{field.data.GetType()} ");
-                debugString.Append(") ");
-                continue;
-            }
-
-            debugString.Append($"(");
-            debugString.Append($"{field.name}: ");
-            debugString.Append($"{field.id}, ");
-            debugString.Append($"{field.data.GetType()} ");
-            debugString.Append(") ");
-        }
-        return debugString;
-    }
-
     public static void Assert(bool condition, string format, params object[] args)
     {
 
@@ -90,42 +68,42 @@ public class Debug
     public static void Log(object message)
     {
         //Reader for OmniEnums
-        if (message.GetType().GetGenericTypeDefinition() == typeof(OmniEnum<,>)) UnityEngine.Debug.Log(OmniEnumBuilder(message));
+        if (message is IDebuggable debuggable) UnityEngine.Debug.Log(debuggable.OmniDebug());
         else UnityEngine.Debug.Log(message);
     }
 
     public static void Log(object message, UnityEngine.Object context)
     {
         //Reader for OmniEnums
-        if (message.GetType().GetGenericTypeDefinition() == typeof(OmniEnum<,>)) UnityEngine.Debug.Log(OmniEnumBuilder(message), context);
+        if (message is IDebuggable debuggable) UnityEngine.Debug.Log(debuggable.OmniDebug(), context);
         else UnityEngine.Debug.Log(message, context);
     }
 
     public static void LogWarning(object message)
     {
         //Reader for OmniEnums
-        if (message.GetType().GetGenericTypeDefinition() == typeof(OmniEnum<,>)) UnityEngine.Debug.LogWarning(OmniEnumBuilder(message));
+        if (message is IDebuggable debuggable) UnityEngine.Debug.LogWarning(debuggable.OmniDebug()); 
         else UnityEngine.Debug.LogWarning(message);
     }
 
     public static void LogWarning(object message, UnityEngine.Object context)
     {
         //Reader for OmniEnums
-        if (message.GetType().GetGenericTypeDefinition() == typeof(OmniEnum<,>)) UnityEngine.Debug.LogWarning(OmniEnumBuilder(message), context);
+        if (message is IDebuggable debuggable) UnityEngine.Debug.LogWarning(debuggable.OmniDebug(), context);
         else UnityEngine.Debug.LogWarning(message, context);
     }
 
     public static void LogError(object message)
     {
         //Reader for OmniEnums
-        if (message.GetType().GetGenericTypeDefinition() == typeof(OmniEnum<,>)) UnityEngine.Debug.LogError(OmniEnumBuilder(message));
+        if (message is IDebuggable debuggable) UnityEngine.Debug.LogError(debuggable.OmniDebug());
         else UnityEngine.Debug.LogError(message);
     }
 
     public static void LogError(object message, UnityEngine.Object context)
     {
         //Reader for OmniEnums
-        if (message.GetType().GetGenericTypeDefinition() == typeof(OmniEnum<,>)) UnityEngine.Debug.LogError(OmniEnumBuilder(message), context);
+        if (message is IDebuggable debuggable) UnityEngine.Debug.LogError(debuggable.OmniDebug(), context);
         else UnityEngine.Debug.LogError(message, context);
     }
 
