@@ -15,14 +15,42 @@ public class DefaultStateAttribute : Attribute
 
 public interface IState 
 {
+    /// <summary>
+    /// Called one time upon the first time entering the state. Useful for setting up listeners or acquiring references.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="self">A reference to the controller object</param>
+    public void OnStateStart<T>(StatefulObject<T> self) where T : IState;
+    /// <summary>
+    /// Called once upon entry every time this state is entered.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="self">A reference to the controller object</param>
     public void OnStateEnter<T>(StatefulObject<T> self) where T : IState;
+    /// <summary>
+    /// Called once every frame. Identical to Unity Update.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="self">A reference to the controller object</param>
     public void OnStateUpdate<T>(StatefulObject<T> self) where T : IState;
+    /// <summary>
+    /// Called at a fixed framerate. Identical to Unity FixedUpdate.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="self">A reference to the controller object</param>
     public void OnStateFixedUpdate<T>(StatefulObject<T> self) where T : IState;
+    /// <summary>
+    /// Called once every time this state is exited
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="self">A reference to the controller object</param>
     public void OnStateExit<T>(StatefulObject<T> self) where T : IState;
 }
 
 public class State<T> : OmniEnum<State<T>, T> where T : IState
 {
+    internal bool firstTime = true;
+
     public static implicit operator State<T>(T data)
     {
         var x = new State<T>();
@@ -76,6 +104,13 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
 
         //change the state
         state = newState;
+
+        if (state.firstTime)
+        {
+            state.data.OnStateStart(this);
+            state.firstTime = false;
+        }
+            
 
         //call enter on the new state in IStates
         newState.data.OnStateEnter(this);
