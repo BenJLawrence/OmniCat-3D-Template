@@ -167,7 +167,6 @@ GameObject:
   - component: {fileID: 157927463}
   - component: {fileID: 157927462}
   - component: {fileID: 157927464}
-  - component: {fileID: 157927465}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -221,8 +220,8 @@ MonoBehaviour:
   m_ActionEvents:
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 157927462}
-        m_TargetAssemblyTypeName: FPSCharacterController, Assembly-CSharp
+      - m_Target: {fileID: 157927464}
+        m_TargetAssemblyTypeName: CharacterController, Assembly-CSharp
         m_MethodName: OnMove
         m_Mode: 0
         m_Arguments:
@@ -237,8 +236,8 @@ MonoBehaviour:
     m_ActionName: Main/New action[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 157927462}
-        m_TargetAssemblyTypeName: FPSCharacterController, Assembly-CSharp
+      - m_Target: {fileID: 157927464}
+        m_TargetAssemblyTypeName: CharacterController, Assembly-CSharp
         m_MethodName: OnJump
         m_Mode: 0
         m_Arguments:
@@ -253,8 +252,8 @@ MonoBehaviour:
     m_ActionName: Main/Jump[/Keyboard/space]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 157927462}
-        m_TargetAssemblyTypeName: FPSCharacterController, Assembly-CSharp
+      - m_Target: {fileID: 157927464}
+        m_TargetAssemblyTypeName: CharacterController, Assembly-CSharp
         m_MethodName: OnSprint
         m_Mode: 0
         m_Arguments:
@@ -279,7 +278,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 157927459}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0477af686aac43b4097c7311dcbaf3c8, type: 3}
   m_Name: 
@@ -342,18 +341,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 279af8afb26cf8e48ad24c705e92cf60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &157927465
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 157927459}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6cc6db9d44d180448af10aaaa6250e8e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  moveSpeed: 300
+  jumpModifier: 20
+  maxSpeed: 7
+  sprintMultiplier: 2
+  multiDirSprint: 0
+  slopeCheckDistance: 1
+  maxSlopeAngle: 70
+  groundCheckType: 0
+  groundPoint: {fileID: 23961164}
+  checkRadius: 0.5
+  checkDistance: 1
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  onGrounded:
+    m_PersistentCalls:
+      m_Calls: []
+  coyoteTime: 0.2
+  coyoteModifier: 1.2
+  extendJumps: 1
+  multipleJumps: 1
+  jumpAmount: 2
+  inAirMoveSpeed: 500
+  jumpDuration: 0.3
+  fallForce: 100
+  minJumpForce: 5
+  multiJumpForce: 10
+  extendMultiJumps: 0
+  lockOnLanding: 1
 --- !u!1 &160211461
 GameObject:
   m_ObjectHideFlags: 0

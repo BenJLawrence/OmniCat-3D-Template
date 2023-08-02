@@ -9,7 +9,6 @@ using System.Reflection.Emit;
 
 public class OmniEnum<EnumType, DataType> : IComparable, IEnumerable<OmniEnum<EnumType, DataType>>, IDebuggable
 {
-    public BindingFlags testFlags = BindingFlags.Public | BindingFlags.Default | BindingFlags.IgnoreCase | BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
     public int id { get; private set; }
     public string name { get; private set; }
 
