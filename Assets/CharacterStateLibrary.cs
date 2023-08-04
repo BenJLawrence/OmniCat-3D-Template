@@ -28,8 +28,7 @@ public class CharacterStateLibrary
     {
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
-            controller = self.GetComponent<CharacterController>();
-            rb = controller.GetComponent<Rigidbody>();
+            base.OnStateEnter(self);
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
@@ -39,17 +38,56 @@ public class CharacterStateLibrary
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
-            rb.AddRelativeForce(controller.movementDir * controller.moveSpeed * Time.deltaTime, ForceMode.Impulse);
+            float targetSpeed = controller.sprinting ? controller.moveSpeed * controller.sprintMultiplier : controller.moveSpeed;
+            if (!controller.onSlope)
+            {
+                rb.AddRelativeForce(controller.movementDir * targetSpeed * Time.deltaTime, ForceMode.Impulse);
+            }
+            else if (controller.onSlope)
+            {
+                //rb.velocity = GetSlopeMoveDir() * targetSpeed * Time.deltaTime;
+
+                if (controller.maintainVelocity)
+                {
+                    rb.velocity = GetSlopeMoveDir() * targetSpeed * Time.deltaTime;
+                }
+                else
+                {
+                    //Multiply the normal speed by the cosine of the angle between the slope surface and world up, in radians, to simulate the steepness of the slope
+                    float angle = Vector3.Angle(controller.slopeHit.normal, Vector3.up);
+                    float slopeMultiplier = Mathf.Cos(angle * Mathf.Deg2Rad);
+                    float newTarget = slopeMultiplier * targetSpeed;
+                    rb.velocity = GetSlopeMoveDir() * newTarget * Time.deltaTime;
+                }
+            }
         }
 
         public override void OnStateUpdate<T>(StatefulObject<T> self)
         {
+            if (controller.movementDir.z <= 0)
+            {
+                controller.sprinting = false;
+            }
+
             if (controller.movementDir == Vector3.zero)
             {
                 controller.ChangeState(CharacterStates.Idle);
             }
 
+            //reset velocity every frame since we don't want to build any acceleration
             rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
+        }
+
+        private Vector3 GetSlopeMoveDir()
+        {
+            ////Check if facing downhill by comparing whether the dot product is positive which if true means we can invert the movement direction
+            //float dotProduct = Vector3.Dot(controller.slopeHit.normal.normalized, controller.transform.forward);
+            //Debug.Log("Dot:" + dotProduct);
+            //var dir = Vector3.ProjectOnPlane(dotProduct > 0 ? controller.movementDir : -controller.movementDir, controller.slopeHit.normal).normalized;
+            //return dir;
+
+            Vector3 adjustedDir = controller.transform.TransformDirection(controller.movementDir);
+            return Vector3.ProjectOnPlane(adjustedDir, controller.slopeHit.normal.normalized);
         }
     }
 
@@ -98,9 +136,9 @@ public class CharacterStateLibrary
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
-            if (airTime < controller.jumpDuration && controller.jumpKeyDown)
+            if (airTime < controller.jumpDuration && controller.jumpKeyDown && controller.extendMultiJumps)
             {
-                rb.AddForce(Vector3.up * controller.jumpModifier * Time.deltaTime, ForceMode.Impulse);
+                rb.AddForce(Vector3.up * controller.extendedMultiJumpForce * Time.deltaTime, ForceMode.Impulse);
                 airTime += Time.deltaTime;
             }
             else
@@ -124,6 +162,8 @@ public class CharacterStateLibrary
     {
         private Vector3 horizontalVelocityCheck;
         private float reduction;
+        private float currentTime;
+        private bool canFall = false;
 
         public override void OnStateStart<T>(StatefulObject<T> self)
         {
@@ -136,6 +176,8 @@ public class CharacterStateLibrary
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
             base.OnStateEnter(self);
+            
+            canFall = false;
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
@@ -145,6 +187,14 @@ public class CharacterStateLibrary
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
+            currentTime += Time.deltaTime;
+            if (currentTime > controller.coyoteTime)
+            {
+                //Debug.Log("Happening");
+                //handles the extra downward force when falling
+                rb.AddForce(Vector3.down * controller.fallForce * Time.deltaTime, ForceMode.Force);
+            }
+
             if (controller.movementDir != Vector3.zero)
             {
                 rb.AddRelativeForce(controller.movementDir * controller.inAirMoveSpeed * Time.deltaTime, ForceMode.Force);
@@ -161,9 +211,6 @@ public class CharacterStateLibrary
                 reduction *= controller.slowDown;
                 rb.AddRelativeForce(controller.movementDir * reduction * Time.deltaTime, ForceMode.Force);
             }
-
-            //handles the extra downward force when falling
-            rb.AddForce(Vector3.down * controller.fallForce * Time.deltaTime, ForceMode.Force);
         }
 
         public override void OnStateUpdate<T>(StatefulObject<T> self)
@@ -174,6 +221,11 @@ public class CharacterStateLibrary
                 horizontalVelocityCheck = new Vector3(rb.velocity.x, 0f, rb.velocity.z).normalized * controller.maxInAirSpeed;
                 horizontalVelocityCheck.y = rb.velocity.y;
                 rb.velocity = horizontalVelocityCheck;
+            }
+
+            if (controller.onSlope)
+            {
+                controller.ChangeState(CharacterStates.Idle);
             }
         }
 
@@ -186,6 +238,13 @@ public class CharacterStateLibrary
         public void HandleGrounded()
         {
             controller.currentJumpAmount = 0;
+            currentTime = 0f;
+
+            if (controller.lockOnLanding)
+            {
+                rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+            }
+
             controller.ChangeState(CharacterStates.Idle);
         }
     }
@@ -194,7 +253,9 @@ public class CharacterStateLibrary
     {
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
-            
+            base.OnStateEnter(self);
+
+
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
@@ -204,12 +265,17 @@ public class CharacterStateLibrary
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
-            
+            rb.AddRelativeForce(controller.movementDir * controller.moveSpeed * controller.sprintMultiplier * Time.deltaTime, ForceMode.Impulse);
         }
 
         public override void OnStateUpdate<T>(StatefulObject<T> self)
         {
-            
+            if (controller.movementDir == Vector3.zero)
+            {
+                controller.ChangeState(CharacterStates.Idle);
+            }
+
+            rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
         }
     }
 
@@ -219,13 +285,12 @@ public class CharacterStateLibrary
 
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
-            Debug.Log("entered jump");
             controller = self.GetComponent<CharacterController>();
             rb = controller.GetComponent<Rigidbody>();
             airTime = 0f;
             
             rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-            rb.AddForce((Vector3.up * controller.minJumpForce), ForceMode.Impulse);
+            rb.AddForce((Vector3.up * controller.baseJumpForce), ForceMode.Impulse);
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
@@ -235,9 +300,9 @@ public class CharacterStateLibrary
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
-            if (airTime < controller.jumpDuration && controller.jumpKeyDown)
+            if (airTime < controller.jumpDuration && controller.jumpKeyDown && controller.extendJumps)
             {
-                rb.AddForce(Vector3.up * controller.jumpModifier * Time.deltaTime, ForceMode.Impulse);
+                rb.AddForce(Vector3.up * controller.extendedJumpForce * Time.deltaTime, ForceMode.Impulse);
                 airTime += Time.deltaTime;
             }
             else

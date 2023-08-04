@@ -30,15 +30,13 @@ public class CharacterController : StatefulObject<CharacterState>
 {
     [Header("General")]
     public float moveSpeed = 100f;
-    public float jumpModifier = 100f;
+    public float extendedJumpForce = 20f;
     [Tooltip("The maximum in air horizontal velocity the player can ever move at.")]
     public float maxInAirSpeed = 5f;
     [Tooltip("Multiplier of moveSpeed when sprinting")]
     public float sprintMultiplier = 1.2f;
     [Tooltip("Allows sprinting in any direction")]
     public bool multiDirSprint = false;
-    public float slopeCheckDistance = 1f;
-    public float maxSlopeAngle = 60f;
 
     [Header("Ground Checks")]
     public GroundCheckType groundCheckType;
@@ -57,20 +55,37 @@ public class CharacterController : StatefulObject<CharacterState>
     public bool multipleJumps = true;
     public int jumpAmount = 2;
     public float inAirMoveSpeed = 100f;
-    public float jumpDuration = .7f;
+    public float jumpDuration = .3f;
+    public float multiJumpDuration = .3f;
     public float fallForce = 100f;
-    public float minJumpForce = 100f;
+    public float baseJumpForce = 5f;
     public bool instantAirStop = false;
     [Range(0.001f, 0.999f)]
     [Tooltip("Used to slow down in air movement towards zero when there is no input. The smaller the number, the faster velocity will approach zero")]
     public float slowDown = .2f;
     [Tooltip("The force applied to jumps past the normal first jump. If this is 0 the minJumpForce will be applied instead" +
         "Typically, this should be higher than the standard jump force to counteract your falling speed.")]
-    public float multiJumpForce = 200f;
+    public float multiJumpForce = 5f;
     [Tooltip("Whether the player can hold the jump button to jump longer on multi jumps.")]
     public bool extendMultiJumps = false;
+    public float extendedMultiJumpForce = 20f;
     [Tooltip("Resets player's y velocity on landing so that they don't bounce when hitting the ground")]
     public bool lockOnLanding = false;
+
+    [Header("Slopes")]
+    [Tooltip("You can find a representation of this in the cyan line drawn from the character")]
+    public float slopeCheckDistance = 1f;
+    [Tooltip("If the angle of the slope is higher than this the player will simply slide off")]
+    public float maxSlopeAngle = 60f;
+    public LayerMask slopeCheckFilter;
+    [Tooltip("A position from which the controller will check for slopes. Ideally position this close to front of the character or else there can be jitters when entering a slope")]
+    public Transform slopeCheckPoint;
+    [Tooltip("Whether the character will be able to slide while on steep angles")]
+    public bool useGravity = true;
+    [Tooltip("When enabled the character will move at the same speed on a slope as they do on the ground. " +
+        "If disabled the character will have to fight against the natural physics that govern slopes. " +
+        "useGravity will not affect this.")]
+    public bool maintainVelocity = true;
 
     internal Vector3 movementDir;
     internal bool isGrounded = true;
@@ -80,6 +95,10 @@ public class CharacterController : StatefulObject<CharacterState>
     internal bool canJump = true;
     internal int currentJumpAmount = 0;
     internal UnityEvent onAirJump = new UnityEvent();
+    internal bool sprinting = false;
+    internal bool onSlope;
+    internal RaycastHit slopeHit;
+    internal float groundAngle;
 
     private void Start()
     {
@@ -90,13 +109,25 @@ public class CharacterController : StatefulObject<CharacterState>
     {
         base.Update();
         GroundCheck();
+        SlopeCheck();
         //UnityEngine.Debug.Log(state);
-        //Debug.Log(currentJumpAmount);
     }
 
     protected override void FixedUpdate()
     {
         base.FixedUpdate();
+    }
+
+    private void SlopeCheck()
+    {
+        if (Physics.Raycast(slopeCheckPoint.position, Vector3.down, out slopeHit, slopeCheckDistance, slopeCheckFilter))
+        {
+            groundAngle = Vector3.Angle(Vector3.up, slopeHit.normal);
+            onSlope = groundAngle < maxSlopeAngle && groundAngle != 0;
+        }
+        else onSlope = false;
+
+        //GetComponent<Rigidbody>().useGravity = !onSlope;
     }
 
     private void GroundCheck()
@@ -126,6 +157,11 @@ public class CharacterController : StatefulObject<CharacterState>
             currentJumpAmount = 0;
         }
 
+        if (!isGrounded && !onSlope)
+        {
+            ChangeState(CharacterStates.Falling);
+        }
+
         wasGrounded = isGrounded;
     }
 
@@ -138,14 +174,21 @@ public class CharacterController : StatefulObject<CharacterState>
 
     public void OnSprint(InputAction.CallbackContext context)
     {
+        if ((context.performed && movementDir.z > 0) || (context.performed && multiDirSprint))
+        {
+            sprinting = true;
+        }
 
+        if (context.canceled)
+        {
+            sprinting = false;
+        }
     }
 
     public void OnJump(InputAction.CallbackContext context)
     {
         if (context.performed && !isGrounded && currentJumpAmount < jumpAmount)
         {
-            Debug.Log("Called air jump");
             jumpKeyDown = true;
             onAirJump.Invoke();
         }
@@ -183,6 +226,12 @@ public class CharacterController : StatefulObject<CharacterState>
                     Gizmos.DrawRay(groundPoint.position, Vector3.down * checkDistance);
                     break;
             }
+        }
+
+        if (slopeCheckPoint != null)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawRay(slopeCheckPoint.position, Vector3.down * slopeCheckDistance);
         }
     }
 }
