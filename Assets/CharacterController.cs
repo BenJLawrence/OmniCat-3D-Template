@@ -37,6 +37,8 @@ public class CharacterController : StatefulObject<CharacterState>
     public float sprintMultiplier = 1.2f;
     [Tooltip("Allows sprinting in any direction")]
     public bool multiDirSprint = false;
+    [Tooltip("How far in front of the player the controller checks for walls in order to prevent sticking. Generally this be slightly longer than the width of the character")]
+    public float wallCheckDistance = .6f;
 
     [Header("Ground Checks")]
     public GroundCheckType groundCheckType;
@@ -77,6 +79,7 @@ public class CharacterController : StatefulObject<CharacterState>
     public float slopeCheckDistance = 1f;
     [Tooltip("If the angle of the slope is higher than this the player will simply slide off")]
     public float maxSlopeAngle = 60f;
+    [Tooltip("Only things included in this mask will elegible for detection")]
     public LayerMask slopeCheckFilter;
     [Tooltip("A position from which the controller will check for slopes. Ideally position this close to front of the character or else there can be jitters when entering a slope")]
     public Transform slopeCheckPoint;
@@ -84,7 +87,7 @@ public class CharacterController : StatefulObject<CharacterState>
     public bool useGravity = true;
     [Tooltip("When enabled the character will move at the same speed on a slope as they do on the ground. " +
         "If disabled the character will have to fight against the natural physics that govern slopes. " +
-        "useGravity will not affect this.")]
+        "useGravity and this setting function independently.")]
     public bool maintainVelocity = true;
 
     internal Vector3 movementDir;
@@ -110,12 +113,22 @@ public class CharacterController : StatefulObject<CharacterState>
         base.Update();
         GroundCheck();
         SlopeCheck();
-        //UnityEngine.Debug.Log(state);
+        WallCheck();
+        UnityEngine.Debug.Log(state);
     }
 
     protected override void FixedUpdate()
     {
         base.FixedUpdate();
+    }
+
+    private void WallCheck()
+    {
+        UnityEngine.Debug.DrawRay(transform.position, transform.TransformVector(movementDir) * wallCheckDistance, Color.red);
+        if (Physics.Raycast(transform.position, transform.TransformVector(movementDir), wallCheckDistance))
+        {
+            GetComponent<Rigidbody>().velocity = new Vector3(0f, GetComponent<Rigidbody>().velocity.y, 0f);
+        }
     }
 
     private void SlopeCheck()
@@ -127,7 +140,10 @@ public class CharacterController : StatefulObject<CharacterState>
         }
         else onSlope = false;
 
-        //GetComponent<Rigidbody>().useGravity = !onSlope;
+        if (!useGravity)
+        {
+            GetComponent<Rigidbody>().useGravity = !onSlope;
+        }
     }
 
     private void GroundCheck()

@@ -39,7 +39,7 @@ public class CharacterStateLibrary
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
             float targetSpeed = controller.sprinting ? controller.moveSpeed * controller.sprintMultiplier : controller.moveSpeed;
-            if (!controller.onSlope)
+            if (!controller.onSlope && controller.groundAngle == 0)
             {
                 rb.AddRelativeForce(controller.movementDir * targetSpeed * Time.deltaTime, ForceMode.Impulse);
             }
@@ -64,6 +64,7 @@ public class CharacterStateLibrary
 
         public override void OnStateUpdate<T>(StatefulObject<T> self)
         {
+
             if (controller.movementDir.z <= 0)
             {
                 controller.sprinting = false;
@@ -302,6 +303,7 @@ public class CharacterStateLibrary
         {
             if (airTime < controller.jumpDuration && controller.jumpKeyDown && controller.extendJumps)
             {
+                Debug.Log("Extended");
                 rb.AddForce(Vector3.up * controller.extendedJumpForce * Time.deltaTime, ForceMode.Impulse);
                 airTime += Time.deltaTime;
             }
