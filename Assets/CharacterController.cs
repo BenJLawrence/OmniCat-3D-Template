@@ -3,11 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Events;
+using System.Reflection;
+using System;
 
 public class CharacterStates : State<CharacterState>
 {
-    public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState();
-    [DefaultState] public static readonly State<CharacterState> Idle = new CharacterStateLibrary.IdleState();
+    private static AnimationTriggers movingTriggers = new AnimationTriggers(new List<string> { "Hey", "Sjhshja" }, null, new List<string> { "Hey2" });
+    private static AnimationTriggers idleTriggers = new AnimationTriggers("Hey", null, "Hey2");
+
+    [StateAnimation("Moving")] public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState(idleTriggers);
+    [StateAnimation("Idle")] [DefaultState] public static readonly State<CharacterState> Idle = new CharacterStateLibrary.IdleState();
     public static readonly State<CharacterState> Falling = new CharacterStateLibrary.FallingState();
     public static readonly State<CharacterState> Sprinting = new CharacterStateLibrary.SprintState();
     public static readonly State<CharacterState> Jumping = new CharacterStateLibrary.JumpState();
@@ -105,7 +110,7 @@ public class CharacterController : StatefulObject<CharacterState>
 
     private void Start()
     {
-       
+        
     }
 
     protected override void Update()
@@ -114,7 +119,7 @@ public class CharacterController : StatefulObject<CharacterState>
         GroundCheck();
         SlopeCheck();
         WallCheck();
-        UnityEngine.Debug.Log(state);
+        //UnityEngine.Debug.Log(state);
     }
 
     protected override void FixedUpdate()

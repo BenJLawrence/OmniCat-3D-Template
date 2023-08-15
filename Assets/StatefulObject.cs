@@ -13,6 +13,20 @@ public class DefaultStateAttribute : Attribute
 
 }
 
+/// <summary>
+/// 
+/// </summary>
+[AttributeUsage(AttributeTargets.Field)]
+public class StateAnimation : Attribute
+{
+    public string animName;
+
+    public StateAnimation(string _animName)
+    {
+        animName = _animName;
+    }
+}
+
 public interface IState 
 {
     /// <summary>
@@ -47,16 +61,40 @@ public interface IState
     public void OnStateExit<T>(StatefulObject<T> self) where T : IState;
 }
 
+public class AnimationTriggers
+{
+    public List<string> exit;
+    public List<string> start;
+    public List<string> update;
+
+    public AnimationTriggers(List<string> _start = null, List<string> _update = null, List<string> _exit = null)
+    {
+        exit = _exit;
+        start = _start;
+        update = _update;
+    }
+
+    public AnimationTriggers(string _start = null, string _update = null, string _exit = null)
+    {
+        start = new List<string> { _start };
+        update = new List<string> { _update };
+        exit = new List<string> { _exit };
+    }
+}
+
 public class State<T> : OmniEnum<State<T>, T> where T : IState
 {
     internal bool firstTime = true;
+    internal string animName;
 
     public static implicit operator State<T>(T data)
     {
         var x = new State<T>();
         x.data = data;
+
         return x;
     }
+
     public void OverrideState(T newData)
     {
         data = newData;
@@ -68,6 +106,8 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
     public static StatefulObject<T> Instance;
 
     protected State<T> state;
+
+    private Animator animator;
 
     private void Awake()
     {
@@ -83,7 +123,28 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
         if (stateDefault != null)   //check to make sure the states we check had a default attribute
         {
             state = (State<T>)stateDefault.GetValue(null);
+            state.data.OnStateStart(this);
             state.data.OnStateEnter(this);
+        }
+        foreach (var field in fieldList)
+        {
+            if (Attribute.IsDefined(field, typeof(StateAnimation)))
+            {
+                if (!GetComponent<Animator>() || !GetComponent<Animator>().runtimeAnimatorController)
+                {
+                    Debug.LogError("Animation Attributes were used when there is no Animator Component on the same object as the StatefulObject. Ensure that you have added an Animator Component and it has a valid controller assigned.");
+                }
+                else
+                {
+                    animator = GetComponent<Animator>();
+                }
+                var animName = field.GetCustomAttribute(typeof(StateAnimation));
+                if (animName is StateAnimation anim)
+                {
+                    var s = (State<T>)state.Find(s => s.name == field.Name);
+                    s.animName = anim.animName;
+                }
+            }
         }
     }
 
@@ -114,5 +175,6 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
 
         //call enter on the new state in IStates
         newState.data.OnStateEnter(this);
+        animator.Play(newState.animName);
     }
 }

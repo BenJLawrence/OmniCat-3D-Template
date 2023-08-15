@@ -8,6 +8,7 @@ public abstract class CharacterState : IState
 {
     protected CharacterController controller;
     protected Rigidbody rb;
+    protected AnimationTriggers triggers;
     public virtual void OnStateStart<T>(StatefulObject<T> self) where T : IState
     {
         controller = self.GetComponent<CharacterController>();
@@ -15,20 +16,28 @@ public abstract class CharacterState : IState
     }
     public virtual void OnStateEnter<T>(StatefulObject<T> self) where T : IState
     {
-        
+
     }
-    public abstract void OnStateUpdate<T>(StatefulObject<T> self) where T: IState;
-    public abstract void OnStateExit<T>(StatefulObject<T> self) where T: IState;
+    public abstract void OnStateUpdate<T>(StatefulObject<T> self) where T : IState;
+    public abstract void OnStateExit<T>(StatefulObject<T> self) where T : IState;
     public abstract void OnStateFixedUpdate<T>(StatefulObject<T> self) where T : IState;
+
+    public CharacterState(AnimationTriggers _triggers)
+    {
+        triggers = _triggers;
+    }
 }
 
 public class CharacterStateLibrary
 {
     public class MoveState : CharacterState
     {
+        public MoveState(AnimationTriggers triggers) : base(triggers) { }
+
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
             base.OnStateEnter(self);
+            //triggers.start.ForEach(trigger => )
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
