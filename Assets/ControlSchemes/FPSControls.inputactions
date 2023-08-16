@@ -31,6 +31,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Crouch/Slide",
+                    "type": "Button",
+                    "id": "5cd41c9a-db0c-4164-b6ac-37e6ea0d5f67",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -130,6 +139,17 @@
                     "processors": "",
                     "groups": "FPS MNK Controls",
                     "action": "Sprint",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6e9b33da-e9a2-4515-810a-02a13940b995",
+                    "path": "<Keyboard>/leftAlt",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "FPS MNK Controls",
+                    "action": "Crouch/Slide",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

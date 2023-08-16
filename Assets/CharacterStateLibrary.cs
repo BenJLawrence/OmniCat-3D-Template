@@ -26,13 +26,14 @@ public abstract class CharacterState : IState
     {
         triggers = _triggers;
     }
+    public CharacterState() { }
 }
 
 public class CharacterStateLibrary
 {
     public class MoveState : CharacterState
     {
-        public MoveState(AnimationTriggers triggers) : base(triggers) { }
+        //public MoveState(AnimationTriggers triggers) : base(triggers) { }
 
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
@@ -84,6 +85,11 @@ public class CharacterStateLibrary
                 controller.ChangeState(CharacterStates.Idle);
             }
 
+            if (controller.isCrouching)
+            {
+                controller.ChangeState(CharacterStates.Crouching);
+            }
+
             //reset velocity every frame since we don't want to build any acceleration
             rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
         }
@@ -126,6 +132,11 @@ public class CharacterStateLibrary
             if (controller.movementDir != Vector3.zero)
             {
                 controller.ChangeState(CharacterStates.Moving);
+            }
+
+            if (controller.isCrouching)
+            {
+                controller.ChangeState(CharacterStates.Crouching);
             }
         }
     }
@@ -312,7 +323,6 @@ public class CharacterStateLibrary
         {
             if (airTime < controller.jumpDuration && controller.jumpKeyDown && controller.extendJumps)
             {
-                Debug.Log("Extended");
                 rb.AddForce(Vector3.up * controller.extendedJumpForce * Time.deltaTime, ForceMode.Impulse);
                 airTime += Time.deltaTime;
             }
@@ -353,24 +363,32 @@ public class CharacterStateLibrary
 
     public class CrouchState : CharacterState
     {
+        public CrouchState(AnimationTriggers _triggers) : base(_triggers) { }
+
+        public override void OnStateStart<T>(StatefulObject<T> self)
+        {
+            base.OnStateStart(self);
+        }
+
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
-            throw new NotImplementedException();
+            base.OnStateEnter(self);
+            triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlags.Start);
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
         {
-            throw new NotImplementedException();
+            
         }
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
-            throw new NotImplementedException();
+
         }
 
         public override void OnStateUpdate<T>(StatefulObject<T> self)
         {
-            throw new NotImplementedException();
+
         }
     }
 }

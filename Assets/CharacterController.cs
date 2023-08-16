@@ -8,16 +8,16 @@ using System;
 
 public class CharacterStates : State<CharacterState>
 {
-    private static AnimationTriggers movingTriggers = new AnimationTriggers(new List<string> { "Hey", "Sjhshja" }, null, new List<string> { "Hey2" });
-    private static AnimationTriggers idleTriggers = new AnimationTriggers("Hey", null, "Hey2");
+    private static AnimationTriggers crouchTriggers = new AnimationTriggers("CrouchIdle", null, null);
 
-    [StateAnimation("Moving")] public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState(idleTriggers);
+    [StateAnimation("Moving")] public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState();
     [StateAnimation("Idle")] [DefaultState] public static readonly State<CharacterState> Idle = new CharacterStateLibrary.IdleState();
     public static readonly State<CharacterState> Falling = new CharacterStateLibrary.FallingState();
     public static readonly State<CharacterState> Sprinting = new CharacterStateLibrary.SprintState();
     public static readonly State<CharacterState> Jumping = new CharacterStateLibrary.JumpState();
     public static readonly State<CharacterState> OnSlope = new CharacterStateLibrary.SlopeState();
     public static readonly State<CharacterState> AirJump = new CharacterStateLibrary.AirJumpingState();
+    public static readonly State<CharacterState> Crouching = new CharacterStateLibrary.CrouchState(crouchTriggers);
 }
 
 /// <summary>
@@ -95,6 +95,12 @@ public class CharacterController : StatefulObject<CharacterState>
         "useGravity and this setting function independently.")]
     public bool maintainVelocity = true;
 
+    [Header("Crouching/Sliding")]
+    public float crouchHeight = 0.5f;
+    [Tooltip("The time in seconds it takes to go from standing to crouching")]
+    public float toCrouchSpeed = .2f;
+    
+
     internal Vector3 movementDir;
     internal bool isGrounded = true;
     private RaycastHit groundHit;
@@ -107,6 +113,7 @@ public class CharacterController : StatefulObject<CharacterState>
     internal bool onSlope;
     internal RaycastHit slopeHit;
     internal float groundAngle;
+    internal bool isCrouching = false;
 
     private void Start()
     {
@@ -223,6 +230,19 @@ public class CharacterController : StatefulObject<CharacterState>
         if (context.canceled)
         {
             jumpKeyDown = false;
+        }
+    }
+
+    public void OnCrouch(InputAction.CallbackContext context)
+    {
+        if (context.performed && isGrounded)
+        {
+            isCrouching = true;
+        }
+
+        if (context.canceled)
+        {
+            isCrouching = false;
         }
     }
     #endregion

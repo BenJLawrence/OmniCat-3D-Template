@@ -67,6 +67,14 @@ public class AnimationTriggers
     public List<string> start;
     public List<string> update;
 
+    [Flags]
+    public enum TriggerFlags
+    {
+        Start = 0,
+        Update = 1,
+        Exit = 2,
+    }
+
     public AnimationTriggers(List<string> _start = null, List<string> _update = null, List<string> _exit = null)
     {
         exit = _exit;
@@ -79,6 +87,110 @@ public class AnimationTriggers
         start = new List<string> { _start };
         update = new List<string> { _update };
         exit = new List<string> { _exit };
+    }
+
+    /// <summary>
+    /// Sets all triggers for the appropriate flags
+    /// </summary>
+    /// <param name="animator">Animator to trigger on</param>
+    /// <param name="flags">Represents what trigger categories to set</param>
+    public void TriggerAll(Animator animator, TriggerFlags flags)
+    {
+        var values = Enum.GetValues(typeof(TriggerFlags));
+        foreach (TriggerFlags value in values)
+        {
+            if ((flags & value) == value)
+            {
+                switch (value)
+                {
+                    case TriggerFlags.Start:
+                        start.ForEach(trigger => animator.SetTrigger(trigger));
+                        break;
+                    case TriggerFlags.Update:
+                        update.ForEach(trigger => animator.SetTrigger(trigger));
+                        break;
+                    case TriggerFlags.Exit:
+                        exit.ForEach(trigger => animator.SetTrigger(trigger));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sets the trigger for all triggers in all categories. Only use this when you are dealing with single categories i.e: only using start while exit and update are both empty
+    /// </summary>
+    /// <param name="animator">Animator to trigger on</param>
+    public void TriggerAll(Animator animator)
+    {
+        foreach(var trigger in start)
+        {
+            animator.SetTrigger(trigger);
+        }
+
+        foreach (var trigger in update)
+        {
+            animator.SetTrigger(trigger);
+        }
+
+        foreach (var trigger in exit)
+        {
+            animator.SetTrigger(trigger);
+        }
+    }
+
+    /// <summary>
+    /// Resets the trigger for all triggers in all categories. Only use this when you are dealing with single categories i.e: only using start while exit and update are both empty
+    /// </summary>
+    /// <param name="animator">Animator to trigger on</param>
+    public void ResetAll(Animator animator)
+    {
+        foreach (var trigger in start)
+        {
+            animator.ResetTrigger(trigger);
+        }
+
+        foreach (var trigger in update)
+        {
+            animator.ResetTrigger(trigger);
+        }
+
+        foreach (var trigger in exit)
+        {
+            animator.ResetTrigger(trigger);
+        }
+    }
+
+    /// <summary>
+    /// Sets all triggers for the appropriate flags
+    /// </summary>
+    /// <param name="animator">Animator to trigger on</param>
+    /// <param name="flags">Represents what trigger categories to set</param>
+    public void ResetAll(Animator animator, TriggerFlags flags)
+    {
+        var values = Enum.GetValues(typeof(TriggerFlags));
+        foreach (TriggerFlags value in values)
+        {
+            if ((flags & value) == value)
+            {
+                switch (value)
+                {
+                    case TriggerFlags.Start:
+                        start.ForEach(trigger => animator.ResetTrigger(trigger));
+                        break;
+                    case TriggerFlags.Update:
+                        update.ForEach(trigger => animator.ResetTrigger(trigger));
+                        break;
+                    case TriggerFlags.Exit:
+                        exit.ForEach(trigger => animator.ResetTrigger(trigger));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
     }
 }
 
@@ -107,7 +219,7 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
 
     protected State<T> state;
 
-    private Animator animator;
+    internal Animator animator;
 
     private void Awake()
     {
@@ -175,6 +287,7 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
 
         //call enter on the new state in IStates
         newState.data.OnStateEnter(this);
-        animator.Play(newState.animName);
+        if (newState.animName != null)
+            animator.Play(newState.animName);
     }
 }
