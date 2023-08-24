@@ -3,12 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Linq;
+using System.Reflection;
 
 public abstract class CharacterState : IState
 {
     protected CharacterController controller;
     protected Rigidbody rb;
     protected AnimationTriggers triggers;
+    private List<FieldInfo> triggerFields;
     public virtual void OnStateStart<T>(StatefulObject<T> self) where T : IState
     {
         controller = self.GetComponent<CharacterController>();
@@ -31,14 +34,22 @@ public abstract class CharacterState : IState
 
 public class CharacterStateLibrary
 {
+    public static float originalHeight;
+    public static float originalColliderHeight;
     public class MoveState : CharacterState
     {
         //public MoveState(AnimationTriggers triggers) : base(triggers) { }
+
+        public override void OnStateStart<T>(StatefulObject<T> self)
+        {
+            base.OnStateStart(self);
+        }
 
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
             base.OnStateEnter(self);
             //triggers.start.ForEach(trigger => )
+
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
@@ -361,9 +372,13 @@ public class CharacterStateLibrary
         }
     }
 
-    public class CrouchState : CharacterState
+    public class CrouchWalkState : CharacterState
     {
-        public CrouchState(AnimationTriggers _triggers) : base(_triggers) { }
+        private float lerpPos;
+        private float lastLerpPos;
+        private bool lerpFinished = false;
+
+        public CrouchWalkState(AnimationTriggers triggers) : base(triggers) { }
 
         public override void OnStateStart<T>(StatefulObject<T> self)
         {
@@ -373,7 +388,6 @@ public class CharacterStateLibrary
         public override void OnStateEnter<T>(StatefulObject<T> self)
         {
             base.OnStateEnter(self);
-            triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlags.Start);
         }
 
         public override void OnStateExit<T>(StatefulObject<T> self)
@@ -383,12 +397,176 @@ public class CharacterStateLibrary
 
         public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
         {
+            float targetSpeed = controller.moveSpeed * controller.crouchSpeedModifier;
+            if (!controller.onSlope && controller.groundAngle == 0)
+            {
+                rb.AddRelativeForce(controller.movementDir * targetSpeed * Time.deltaTime, ForceMode.Impulse);
+            }
+            else if (controller.onSlope)
+            {
+                if (controller.maintainVelocity)
+                {
+                    rb.velocity = GetSlopeMoveDir() * targetSpeed * Time.deltaTime;
+                }
+                else
+                {
+                    //Multiply the normal speed by the cosine of the angle between the slope surface and world up, in radians, to simulate the steepness of the slope
+                    float angle = Vector3.Angle(controller.slopeHit.normal, Vector3.up);
+                    float slopeMultiplier = Mathf.Cos(angle * Mathf.Deg2Rad);
+                    float newTarget = slopeMultiplier * targetSpeed;
+                    rb.velocity = GetSlopeMoveDir() * newTarget * Time.deltaTime;
+                }
+            }
+        }
 
+        private Vector3 GetSlopeMoveDir()
+        {
+            ////Check if facing downhill by comparing whether the dot product is positive which if true means we can invert the movement direction
+            //float dotProduct = Vector3.Dot(controller.slopeHit.normal.normalized, controller.transform.forward);
+            //Debug.Log("Dot:" + dotProduct);
+            //var dir = Vector3.ProjectOnPlane(dotProduct > 0 ? controller.movementDir : -controller.movementDir, controller.slopeHit.normal).normalized;
+            //return dir;
+
+            Vector3 adjustedDir = controller.transform.TransformDirection(controller.movementDir);
+            return Vector3.ProjectOnPlane(adjustedDir, controller.slopeHit.normal.normalized);
         }
 
         public override void OnStateUpdate<T>(StatefulObject<T> self)
         {
+            if (controller.movementDir == Vector3.zero)
+            {
+                controller.ChangeState(CharacterStates.Crouching);
+            }
+            if (!controller.isCrouching)
+            {
+                triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
+                triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
 
+                var time = 0f;
+                time += Time.deltaTime / controller.toCrouchSpeed;
+
+                controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, originalColliderHeight, time);
+                lerpPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, originalHeight, time);
+
+                if (Mathf.Approximately(lerpPos, lastLerpPos))
+                {
+                    lerpFinished = true;
+                }
+
+                controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, lerpPos, controller.mainCam.transform.localPosition.z);
+                lastLerpPos = lerpPos;
+
+                if (lerpFinished)
+                    controller.ChangeState(CharacterStates.Idle);
+            }
+
+            //reset velocity every frame since we don't want to build any acceleration
+            rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
+        }
+    }
+    static bool isLerping = false;
+
+
+    public class CrouchState : CharacterState
+    {
+        public CrouchState(AnimationTriggers _triggers) : base(_triggers) { }
+
+        private float currentCrouchTime;
+        private float lastLerpPos;
+        private float lerpPos;
+        private bool lerpFinished = false;
+        private bool triggered = false;
+        
+        /*TODO
+         * Shrink collider with crouch
+         * Transition to crouch move state
+         */
+
+        public override void OnStateStart<T>(StatefulObject<T> self)
+        {
+            base.OnStateStart(self);
+        }
+
+        public override void OnStateEnter<T>(StatefulObject<T> self)
+        {
+            base.OnStateEnter(self);
+
+            currentCrouchTime = controller.toCrouchSpeed;
+            lerpFinished = false;
+            triggered = false;
+            triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
+            originalHeight = controller.mainCam.transform.localPosition.y;
+            originalColliderHeight = controller.modelCollider.height;
+        }
+
+        public override void OnStateExit<T>(StatefulObject<T> self)
+        {
+
+        }
+
+        public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
+        {
+
+        }
+
+        IEnumerator CrouchLerp()
+        {
+            float timeElapsed = 0;
+            while (timeElapsed < controller.toCrouchSpeed)
+            {
+                isLerping = true;
+                var camPos = Mathf.Lerp(originalHeight, controller.crouchHeight, timeElapsed / controller.toCrouchSpeed);
+                controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, camPos, controller.mainCam.transform.localPosition.z);
+                yield return null;
+            }
+            controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, originalHeight, controller.mainCam.transform.localPosition.z);
+        }
+
+        public override void OnStateUpdate<T>(StatefulObject<T> self)
+        {
+            if (controller.isCrouching)
+            {
+                triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
+                triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
+
+                //var time = 0f;
+                //time += Time.deltaTime / controller.toCrouchSpeed;
+
+                //var camPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, controller.crouchHeight, time);
+                //controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, controller.crouchHeight, time);
+                //controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, camPos, controller.mainCam.transform.localPosition.z);
+
+            }
+            else
+            {
+                triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
+                triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
+
+                var time = 0f;
+                time += Time.deltaTime / controller.toCrouchSpeed;
+
+                controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, originalColliderHeight, time);
+                lerpPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, originalHeight, time);
+
+                if (Mathf.Approximately(lerpPos, lastLerpPos))
+                {
+                    lerpFinished = true;
+                }
+
+                controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, lerpPos, controller.mainCam.transform.localPosition.z);
+                lastLerpPos = lerpPos;
+            }
+
+
+            if (!controller.isCrouching && lerpFinished)
+            {
+                controller.ChangeState(CharacterStates.Idle);
+            }
+
+            if (controller.isCrouching && controller.movementDir != Vector3.zero && lerpFinished)
+            {
+                controller.ChangeState(CharacterStates.CrouchWalk);
+            }
         }
     }
 }

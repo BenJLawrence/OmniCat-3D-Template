@@ -8,16 +8,17 @@ using System;
 
 public class CharacterStates : State<CharacterState>
 {
-    private static AnimationTriggers crouchTriggers = new AnimationTriggers("CrouchIdle", null, null);
+    private static AnimationTriggers crouchTriggers = new AnimationTriggers("Crouch", null, "Uncrouch");
 
-    [StateAnimation("Moving")] public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState();
-    [StateAnimation("Idle")] [DefaultState] public static readonly State<CharacterState> Idle = new CharacterStateLibrary.IdleState();
+    public static readonly State<CharacterState> Moving = new CharacterStateLibrary.MoveState();
+    [DefaultState] public static readonly State<CharacterState> Idle = new CharacterStateLibrary.IdleState();
     public static readonly State<CharacterState> Falling = new CharacterStateLibrary.FallingState();
     public static readonly State<CharacterState> Sprinting = new CharacterStateLibrary.SprintState();
     public static readonly State<CharacterState> Jumping = new CharacterStateLibrary.JumpState();
     public static readonly State<CharacterState> OnSlope = new CharacterStateLibrary.SlopeState();
     public static readonly State<CharacterState> AirJump = new CharacterStateLibrary.AirJumpingState();
     public static readonly State<CharacterState> Crouching = new CharacterStateLibrary.CrouchState(crouchTriggers);
+    public static readonly State<CharacterState> CrouchWalk = new CharacterStateLibrary.CrouchWalkState(crouchTriggers);
 }
 
 /// <summary>
@@ -33,6 +34,9 @@ public enum GroundCheckType
 
 public class CharacterController : StatefulObject<CharacterState>
 {
+    public Camera mainCam;
+    public CapsuleCollider modelCollider;
+
     [Header("General")]
     public float moveSpeed = 100f;
     public float extendedJumpForce = 20f;
@@ -99,6 +103,10 @@ public class CharacterController : StatefulObject<CharacterState>
     public float crouchHeight = 0.5f;
     [Tooltip("The time in seconds it takes to go from standing to crouching")]
     public float toCrouchSpeed = .2f;
+    [Tooltip("Toggle crouch on/off on button press instead of hold to crouch")]
+    public bool useToggle = false;
+    [Tooltip("Modifier on the movement speed when crouched.")]
+    public float crouchSpeedModifier = 0.5f;
     
 
     internal Vector3 movementDir;
@@ -126,7 +134,7 @@ public class CharacterController : StatefulObject<CharacterState>
         GroundCheck();
         SlopeCheck();
         WallCheck();
-        //UnityEngine.Debug.Log(state);
+        UnityEngine.Debug.Log(state);
     }
 
     protected override void FixedUpdate()
@@ -235,14 +243,25 @@ public class CharacterController : StatefulObject<CharacterState>
 
     public void OnCrouch(InputAction.CallbackContext context)
     {
-        if (context.performed && isGrounded)
+        if (useToggle)
         {
-            isCrouching = true;
+            if (context.performed && isGrounded)
+            {
+                isCrouching = !isCrouching;
+            }
         }
-
-        if (context.canceled)
+        else
         {
-            isCrouching = false;
+            if (context.performed && isGrounded)
+            {
+                isCrouching = true;
+            }
+
+            if (context.canceled)
+            {
+                isCrouching = false;
+
+            }
         }
     }
     #endregion

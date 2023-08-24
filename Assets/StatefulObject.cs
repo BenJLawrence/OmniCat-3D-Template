@@ -67,8 +67,7 @@ public class AnimationTriggers
     public List<string> start;
     public List<string> update;
 
-    [Flags]
-    public enum TriggerFlags
+    public enum TriggerFlag
     {
         Start = 0,
         Update = 1,
@@ -82,6 +81,13 @@ public class AnimationTriggers
         update = _update;
     }
 
+    /// <summary>
+    /// A group of triggers that a state can call automatically at the appropriate time.<para></para>
+    /// In order to ensure your triggers are bound to the correct parameters try defining a parameter like this: (exit: "MyExitTrigger") which will bind to exit
+    /// </summary>
+    /// <param name="_start"></param>
+    /// <param name="_update"></param>
+    /// <param name="_exit"></param>
     public AnimationTriggers(string _start = null, string _update = null, string _exit = null)
     {
         start = new List<string> { _start };
@@ -94,28 +100,19 @@ public class AnimationTriggers
     /// </summary>
     /// <param name="animator">Animator to trigger on</param>
     /// <param name="flags">Represents what trigger categories to set</param>
-    public void TriggerAll(Animator animator, TriggerFlags flags)
+    public void TriggerAll(Animator animator, TriggerFlag flag)
     {
-        var values = Enum.GetValues(typeof(TriggerFlags));
-        foreach (TriggerFlags value in values)
+        switch(flag)
         {
-            if ((flags & value) == value)
-            {
-                switch (value)
-                {
-                    case TriggerFlags.Start:
-                        start.ForEach(trigger => animator.SetTrigger(trigger));
-                        break;
-                    case TriggerFlags.Update:
-                        update.ForEach(trigger => animator.SetTrigger(trigger));
-                        break;
-                    case TriggerFlags.Exit:
-                        exit.ForEach(trigger => animator.SetTrigger(trigger));
-                        break;
-                    default:
-                        break;
-                }
-            }
+            case TriggerFlag.Start:
+                start.ForEach(trigger => animator.SetTrigger(trigger));
+                break;
+            case TriggerFlag.Update:
+                update.ForEach(trigger => animator.SetTrigger(trigger));
+                break;
+            case TriggerFlag.Exit:
+                exit.ForEach(trigger => animator.SetTrigger(trigger));
+                break;
         }
     }
 
@@ -168,28 +165,19 @@ public class AnimationTriggers
     /// </summary>
     /// <param name="animator">Animator to trigger on</param>
     /// <param name="flags">Represents what trigger categories to set</param>
-    public void ResetAll(Animator animator, TriggerFlags flags)
+    public void ResetAll(Animator animator, TriggerFlag flag)
     {
-        var values = Enum.GetValues(typeof(TriggerFlags));
-        foreach (TriggerFlags value in values)
+        switch (flag)
         {
-            if ((flags & value) == value)
-            {
-                switch (value)
-                {
-                    case TriggerFlags.Start:
-                        start.ForEach(trigger => animator.ResetTrigger(trigger));
-                        break;
-                    case TriggerFlags.Update:
-                        update.ForEach(trigger => animator.ResetTrigger(trigger));
-                        break;
-                    case TriggerFlags.Exit:
-                        exit.ForEach(trigger => animator.ResetTrigger(trigger));
-                        break;
-                    default:
-                        break;
-                }
-            }
+            case TriggerFlag.Start:
+                start.ForEach(trigger => animator.ResetTrigger(trigger));
+                break;
+            case TriggerFlag.Update:
+                update.ForEach(trigger => animator.ResetTrigger(trigger));
+                break;
+            case TriggerFlag.Exit:
+                exit.ForEach(trigger => animator.ResetTrigger(trigger));
+                break;
         }
     }
 }
@@ -238,18 +226,20 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
             state.data.OnStateStart(this);
             state.data.OnStateEnter(this);
         }
+
+        if (!GetComponentInChildren<Animator>() || !GetComponentInChildren<Animator>().runtimeAnimatorController)
+        {
+            Debug.LogError("State Animations were used when there is no Animator Component on the same or children object(s) as the StatefulObject. Ensure that you have added an Animator Component and it has a valid controller assigned.");
+        }
+        else
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
+
         foreach (var field in fieldList)
         {
             if (Attribute.IsDefined(field, typeof(StateAnimation)))
             {
-                if (!GetComponent<Animator>() || !GetComponent<Animator>().runtimeAnimatorController)
-                {
-                    Debug.LogError("Animation Attributes were used when there is no Animator Component on the same object as the StatefulObject. Ensure that you have added an Animator Component and it has a valid controller assigned.");
-                }
-                else
-                {
-                    animator = GetComponent<Animator>();
-                }
                 var animName = field.GetCustomAttribute(typeof(StateAnimation));
                 if (animName is StateAnimation anim)
                 {
@@ -257,6 +247,7 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
                     s.animName = anim.animName;
                 }
             }
+
         }
     }
 
@@ -283,7 +274,7 @@ public class StatefulObject<T> : MonoBehaviour where T : IState
             state.data.OnStateStart(this);
             state.firstTime = false;
         }
-            
+
 
         //call enter on the new state in IStates
         newState.data.OnStateEnter(this);
