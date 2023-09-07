@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using OmnicatLabs.StatefulObject;
+using OmnicatLabs.Tween;
 
 namespace OmnicatLabs.CharacterControllers
 {
@@ -492,6 +493,8 @@ namespace OmnicatLabs.CharacterControllers
                 triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
                 originalHeight = controller.mainCam.transform.localPosition.y;
                 originalColliderHeight = controller.modelCollider.height;
+
+                controller.mainCam.transform.TweenPosition(new Vector3(controller.mainCam.transform.position.x, controller.crouchHeight, controller.mainCam.transform.position.z), controller.toCrouchSpeed, () => Debug.Log("Completed"));
             }
 
             public override void OnStateExit<T>(StatefulObject<T> self)
@@ -501,7 +504,7 @@ namespace OmnicatLabs.CharacterControllers
 
             public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
             {
-
+                
             }
 
             IEnumerator CrouchLerp()
