@@ -319,6 +319,26 @@ namespace OmnicatLabs.Timers
         {
             return timers.Where(timer => !timer.markedForDestroy && !timer.isPaused).ToList();
         }
+
+        /// <summary>
+        /// Gets the timer at the given index
+        /// </summary>
+        /// <param name="index">The index of the timer to get</param>
+        /// <returns>Returns the Timer at the given index</returns>
+        public Timer GetTimer(int index)
+        {
+            return timers[index];
+        }
+
+        /// <summary>
+        /// Gets the index of a specific Timer object being managed
+        /// </summary>
+        /// <param name="timer">The timer to locate the index of</param>
+        /// <returns>Returns the int index of the specified timer</returns>
+        public int GetTimerIndex(Timer timer)
+        {
+            return timers.IndexOf(timer);
+        }
         #endregion
 
         private void Update()

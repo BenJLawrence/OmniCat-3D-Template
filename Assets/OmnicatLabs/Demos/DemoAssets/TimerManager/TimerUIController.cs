@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace OmnicatLabs.Demos
+namespace OmnicatLabs.Demos.Timers
 {
     public class TimerUIController : MonoBehaviour
     {

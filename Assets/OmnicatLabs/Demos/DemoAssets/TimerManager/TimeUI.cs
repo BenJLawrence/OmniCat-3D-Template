@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-namespace OmnicatLabs.Demos
+namespace OmnicatLabs.Demos.Timers
 {
     public class TimeUI : MonoBehaviour, IPointerClickHandler
     {
