@@ -19,6 +19,7 @@ namespace OmnicatLabs.CharacterControllers
         public static readonly State<CharacterState> AirJump = new CharacterStateLibrary.AirJumpingState();
         public static readonly State<CharacterState> Crouching = new CharacterStateLibrary.CrouchState(crouchTriggers);
         public static readonly State<CharacterState> CrouchWalk = new CharacterStateLibrary.CrouchWalkState(crouchTriggers);
+        public static readonly State<CharacterState> Slide = new CharacterStateLibrary.SlideState();
     }
 
     /// <summary>
@@ -107,6 +108,7 @@ namespace OmnicatLabs.CharacterControllers
         public bool useToggle = false;
         [Tooltip("Modifier on the movement speed when crouched.")]
         public float crouchSpeedModifier = 0.5f;
+        public float slideSpeed = 10f;
 
 
         internal Vector3 movementDir;

@@ -34,8 +34,6 @@ namespace OmnicatLabs.CharacterControllers
 
     public class CharacterStateLibrary
     {
-        public static float originalHeight;
-        public static float originalColliderHeight;
         public class MoveState : CharacterState
         {
             public override void OnStateStart<T>(StatefulObject<T> self)
@@ -95,6 +93,11 @@ namespace OmnicatLabs.CharacterControllers
                 if (controller.isCrouching)
                 {
                     controller.ChangeState(CharacterStates.Crouching);
+                }
+
+                if (controller.isCrouching && controller.sprinting)
+                {
+                    controller.ChangeState(CharacterStates.Slide);
                 }
 
                 //reset velocity every frame since we don't want to build any acceleration
@@ -441,8 +444,8 @@ namespace OmnicatLabs.CharacterControllers
                     var time = 0f;
                     time += Time.deltaTime / controller.toCrouchSpeed;
 
-                    controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, originalColliderHeight, time);
-                    lerpPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, originalHeight, time);
+                    //controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, originalColliderHeight, time);
+                    //lerpPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, originalCamPos, time);
 
                     if (Mathf.Approximately(lerpPos, lastLerpPos))
                     {
@@ -460,8 +463,6 @@ namespace OmnicatLabs.CharacterControllers
                 rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
             }
         }
-        static bool isLerping = false;
-
 
         public class CrouchState : CharacterState
         {
@@ -472,6 +473,9 @@ namespace OmnicatLabs.CharacterControllers
             private float lerpPos;
             private bool lerpFinished = false;
             private bool triggered = false;
+            private float originalCamHeight;
+            private float originalColHeight;
+            private bool inCrouch = false;
 
             /*TODO
              * Shrink collider with crouch
@@ -481,6 +485,8 @@ namespace OmnicatLabs.CharacterControllers
             public override void OnStateStart<T>(StatefulObject<T> self)
             {
                 base.OnStateStart(self);
+                originalCamHeight = controller.mainCam.transform.position.y;
+                originalColHeight = controller.modelCollider.height;
             }
 
             public override void OnStateEnter<T>(StatefulObject<T> self)
@@ -491,10 +497,9 @@ namespace OmnicatLabs.CharacterControllers
                 lerpFinished = false;
                 triggered = false;
                 triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
-                originalHeight = controller.mainCam.transform.localPosition.y;
-                originalColliderHeight = controller.modelCollider.height;
-
-                controller.mainCam.transform.TweenPosition(new Vector3(controller.mainCam.transform.position.x, controller.crouchHeight, controller.mainCam.transform.position.z), controller.toCrouchSpeed, () => Debug.Log("Completed"));
+                //originalCamPos = controller.mainCam.transform.localPosition;
+                //originalColliderHeight = controller.modelCollider.height;
+                
             }
 
             public override void OnStateExit<T>(StatefulObject<T> self)
@@ -507,64 +512,100 @@ namespace OmnicatLabs.CharacterControllers
                 
             }
 
-            IEnumerator CrouchLerp()
+            public override void OnStateUpdate<T>(StatefulObject<T> self)
             {
-                float timeElapsed = 0;
-                while (timeElapsed < controller.toCrouchSpeed)
+                if (!inCrouch && controller.isCrouching)
                 {
-                    isLerping = true;
-                    var camPos = Mathf.Lerp(originalHeight, controller.crouchHeight, timeElapsed / controller.toCrouchSpeed);
-                    controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, camPos, controller.mainCam.transform.localPosition.z);
-                    yield return null;
+                    controller.modelCollider.TweenHeight(controller.crouchHeight, controller.toCrouchSpeed, () => Debug.Log("Completed Collider"), EasingFunctions.Ease.EaseOutQuart);
+                    controller.mainCam.transform.TweenPosition(new Vector3(controller.mainCam.transform.position.x, controller.crouchHeight, controller.mainCam.transform.position.z), controller.toCrouchSpeed, () => Debug.Log("Completed"), EasingFunctions.Ease.EaseOutQuart);
+                    inCrouch = true;
                 }
-                controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, originalHeight, controller.mainCam.transform.localPosition.z);
+
+                if (inCrouch && !controller.isCrouching)
+                {
+                    controller.modelCollider.TweenHeight(originalColHeight, controller.toCrouchSpeed, () => Debug.Log("Completed Collider"), EasingFunctions.Ease.EaseOutQuart);
+                    controller.mainCam.transform.TweenPosition(
+                        new Vector3(controller.mainCam.transform.position.x, originalCamHeight, controller.mainCam.transform.position.z),
+                        controller.toCrouchSpeed,
+                        () => Debug.Log("Completed"), EasingFunctions.Ease.EaseOutQuart
+                        );
+                    inCrouch = false;
+                }
+
+                //if (controller.isCrouching)
+                //{
+                //    triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
+                //    triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
+
+                //    //var time = 0f;
+                //    //time += Time.deltaTime / controller.toCrouchSpeed;
+
+                //    //var camPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, controller.crouchHeight, time);
+                //    //controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, controller.crouchHeight, time);
+                //    //controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, camPos, controller.mainCam.transform.localPosition.z);
+
+                //}
+                //else
+                //{
+                //    triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
+                //    triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
+
+                //    var time = 0f;
+                //    time += Time.deltaTime / controller.toCrouchSpeed;
+
+                //    controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, originalColliderHeight, time);
+                //    lerpPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, originalHeight, time);
+
+                //    if (Mathf.Approximately(lerpPos, lastLerpPos))
+                //    {
+                //        lerpFinished = true;
+                //    }
+
+                //    controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, lerpPos, controller.mainCam.transform.localPosition.z);
+                //    lastLerpPos = lerpPos;
+                //}
+
+
+                //if (!controller.isCrouching && lerpFinished)
+                //{
+                //    controller.ChangeState(CharacterStates.Idle);
+                //}
+
+                //if (controller.isCrouching && controller.movementDir != Vector3.zero && lerpFinished)
+                //{
+                //    controller.ChangeState(CharacterStates.CrouchWalk);
+                //}
+            }
+        }
+
+        public class SlideState : CharacterState
+        {
+            public override void OnStateStart<T>(StatefulObject<T> self)
+            {
+                base.OnStateStart(self);
+            }
+
+            public override void OnStateEnter<T>(StatefulObject<T> self)
+            {
+                base.OnStateEnter(self);
+
+                controller.modelCollider.TweenHeight(controller.crouchHeight, controller.toCrouchSpeed, () => Debug.Log("Completed Collider"), EasingFunctions.Ease.EaseOutQuart);
+                rb.AddForce(controller.transform.forward * controller.slideSpeed, ForceMode.Impulse);
+            }
+
+            public override void OnStateExit<T>(StatefulObject<T> self)
+            {
+                
+            }
+
+            public override void OnStateFixedUpdate<T>(StatefulObject<T> self)
+            {
+               
             }
 
             public override void OnStateUpdate<T>(StatefulObject<T> self)
             {
-                if (controller.isCrouching)
-                {
-                    triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
-                    triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
-
-                    //var time = 0f;
-                    //time += Time.deltaTime / controller.toCrouchSpeed;
-
-                    //var camPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, controller.crouchHeight, time);
-                    //controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, controller.crouchHeight, time);
-                    //controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, camPos, controller.mainCam.transform.localPosition.z);
-
-                }
-                else
-                {
-                    triggers.TriggerAll(controller.animator, AnimationTriggers.TriggerFlag.Exit);
-                    triggers.ResetAll(controller.animator, AnimationTriggers.TriggerFlag.Start);
-
-                    var time = 0f;
-                    time += Time.deltaTime / controller.toCrouchSpeed;
-
-                    controller.modelCollider.height = Mathf.Lerp(controller.modelCollider.height, originalColliderHeight, time);
-                    lerpPos = Mathf.Lerp(controller.mainCam.transform.localPosition.y, originalHeight, time);
-
-                    if (Mathf.Approximately(lerpPos, lastLerpPos))
-                    {
-                        lerpFinished = true;
-                    }
-
-                    controller.mainCam.transform.localPosition = new Vector3(controller.mainCam.transform.localPosition.x, lerpPos, controller.mainCam.transform.localPosition.z);
-                    lastLerpPos = lerpPos;
-                }
-
-
-                if (!controller.isCrouching && lerpFinished)
-                {
-                    controller.ChangeState(CharacterStates.Idle);
-                }
-
-                if (controller.isCrouching && controller.movementDir != Vector3.zero && lerpFinished)
-                {
-                    controller.ChangeState(CharacterStates.CrouchWalk);
-                }
+                
             }
         }
     }

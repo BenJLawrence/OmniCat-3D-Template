@@ -1088,9 +1088,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3937644314323181460, guid: 0e8606aaa08d4a34d8e92457ee702bba,
         type: 3}
+      propertyPath: slideSpeed
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3937644314323181460, guid: 0e8606aaa08d4a34d8e92457ee702bba,
+        type: 3}
       propertyPath: modelCollider
       value: 
       objectReference: {fileID: 1588150780}
+    - target: {fileID: 3937644314323181460, guid: 0e8606aaa08d4a34d8e92457ee702bba,
+        type: 3}
+      propertyPath: toCrouchSpeed
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3937644314323181464, guid: 0e8606aaa08d4a34d8e92457ee702bba,
         type: 3}
       propertyPath: m_RootOrder
